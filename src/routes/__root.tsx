@@ -89,6 +89,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "HerbWell — Natural Herbal Medicine" },
+      { name: "twitter:description", content: "Shop premium natural herbal medicine, tinctures and remedies online." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/5a65f02a-5048-465e-bff4-d8c334d47fc4/id-preview-a2d7450f--2ffc3f95-be21-4aa8-b4f3-e016237fc06b.lovable.app-1781167693890.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/5a65f02a-5048-465e-bff4-d8c334d47fc4/id-preview-a2d7450f--2ffc3f95-be21-4aa8-b4f3-e016237fc06b.lovable.app-1781167693890.png" },
     ],
     links: [
       {
