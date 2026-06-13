@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { ShoppingCart, Leaf, LogOut, User as UserIcon, Shield } from "lucide-react";
+import { ShoppingCart, LogOut, User as UserIcon, Shield } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import logo from "@/assets/arthritis-pack.jpeg.asset.json";
 
 export function Navbar() {
   const { count } = useCart();
@@ -12,7 +13,7 @@ export function Navbar() {
     <header className="sticky top-0 z-40 bg-[var(--color-brand)] text-[var(--color-brand-foreground)] shadow-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2 text-xl font-bold">
-          <Leaf className="h-6 w-6" />
+          <img src={logo.url} alt="HerbWell" className="h-9 w-9 rounded-full object-cover ring-2 ring-white/40" />
           <span>HerbWell</span>
         </Link>
         <nav className="hidden gap-6 text-sm font-medium md:flex">
