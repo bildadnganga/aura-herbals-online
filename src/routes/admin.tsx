@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pencil, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
+import { ksh } from "@/lib/format";
 
 export const Route = createFileRoute("/admin")({
   component: Admin,
@@ -26,10 +28,33 @@ type Product = {
   stock: number;
   category: string | null;
   image_url: string | null;
+  featured: boolean;
+};
+
+type Banner = {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  image_url: string;
+  link_url: string | null;
+  active: boolean;
+  sort_order: number;
 };
 
 function slugify(s: string) {
   return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+async function uploadProductImage(file: File): Promise<string> {
+  const path = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+  const { error } = await supabase.storage.from("product-images").upload(path, file, { upsert: false });
+  if (error) throw error;
+  // Long-lived signed URL (10 years) — works on private buckets
+  const { data: signed, error: signErr } = await supabase
+    .storage.from("product-images")
+    .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+  if (signErr || !signed) throw signErr ?? new Error("Failed to sign URL");
+  return signed.signedUrl;
 }
 
 function Admin() {
@@ -51,9 +76,11 @@ function Admin() {
       <Tabs defaultValue="products">
         <TabsList>
           <TabsTrigger value="products">Products</TabsTrigger>
+          <TabsTrigger value="banners">Banners</TabsTrigger>
           <TabsTrigger value="orders">Orders</TabsTrigger>
         </TabsList>
         <TabsContent value="products"><ProductsAdmin /></TabsContent>
+        <TabsContent value="banners"><BannersAdmin /></TabsContent>
         <TabsContent value="orders"><OrdersAdmin /></TabsContent>
       </Tabs>
     </div>
@@ -128,7 +155,7 @@ function ProductsAdmin() {
                   </div>
                 </td>
                 <td className="p-3">{p.category}</td>
-                <td className="p-3 text-right">${Number(p.price).toFixed(2)}</td>
+                <td className="p-3 text-right">{ksh(p.price)}</td>
                 <td className="p-3 text-right">{p.stock}</td>
                 <td className="p-3 text-right">
                   <Button variant="ghost" size="icon" onClick={() => { setEditing(p); setOpen(true); }}>
@@ -157,18 +184,21 @@ function ProductForm({ initial, onDone }: { initial: Product | null; onDone: () 
   const [stock, setStock] = useState(initial?.stock?.toString() ?? "0");
   const [category, setCategory] = useState(initial?.category ?? "");
   const [imageUrl, setImageUrl] = useState(initial?.image_url ?? "");
+  const [featured, setFeatured] = useState<boolean>(initial?.featured ?? false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const handleUpload = async (file: File) => {
     setUploading(true);
-    const path = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
-    const { error } = await supabase.storage.from("product-images").upload(path, file, { upsert: false });
-    if (error) { toast.error(error.message); setUploading(false); return; }
-    const { data } = supabase.storage.from("product-images").getPublicUrl(path);
-    setImageUrl(data.publicUrl);
-    setUploading(false);
-    toast.success("Image uploaded");
+    try {
+      const url = await uploadProductImage(file);
+      setImageUrl(url);
+      toast.success("Image uploaded");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Upload failed");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -183,6 +213,7 @@ function ProductForm({ initial, onDone }: { initial: Product | null; onDone: () 
       stock: parseInt(stock) || 0,
       category: category.trim() || null,
       image_url: imageUrl || null,
+      featured,
     };
     const { error } = initial
       ? await supabase.from("products").update(payload).eq("id", initial.id)
@@ -197,7 +228,7 @@ function ProductForm({ initial, onDone }: { initial: Product | null; onDone: () 
       <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} required /></div>
       <div><Label>Category</Label><Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Tincture, Tea, Capsule..." /></div>
       <div className="grid grid-cols-2 gap-3">
-        <div><Label>Price ($)</Label><Input type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} required /></div>
+        <div><Label>Price (KSh)</Label><Input type="number" step="1" min="0" value={price} onChange={(e) => setPrice(e.target.value)} required /></div>
         <div><Label>Stock</Label><Input type="number" min="0" value={stock} onChange={(e) => setStock(e.target.value)} /></div>
       </div>
       <div><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} /></div>
@@ -205,6 +236,13 @@ function ProductForm({ initial, onDone }: { initial: Product | null; onDone: () 
         <Label>Image</Label>
         <Input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])} disabled={uploading} />
         {imageUrl && <img src={imageUrl} alt="" className="mt-2 h-24 w-24 rounded object-cover" />}
+      </div>
+      <div className="flex items-center justify-between rounded-md border p-3">
+        <div>
+          <Label className="cursor-pointer">Featured (Special Offer)</Label>
+          <p className="text-xs text-muted-foreground">Show with a featured badge on the home page.</p>
+        </div>
+        <Switch checked={featured} onCheckedChange={setFeatured} />
       </div>
       <Button type="submit" className="w-full" disabled={saving || uploading}>
         {saving ? "Saving…" : initial ? "Update Medicine" : "Add Medicine"}
@@ -247,7 +285,7 @@ function OrdersAdmin() {
               <p className="text-sm text-muted-foreground">{o.shipping_address}</p>
             </div>
             <div className="text-right">
-              <p className="text-lg font-semibold">${Number(o.total).toFixed(2)}</p>
+              <p className="text-lg font-semibold">{ksh(o.total)}</p>
               <Select value={o.status} onValueChange={(v) => updateStatus(o.id, v)}>
                 <SelectTrigger className="mt-1 w-40"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -264,7 +302,7 @@ function OrdersAdmin() {
             {o.order_items?.map((it: any) => (
               <li key={it.id} className="flex justify-between">
                 <span>{it.product_name} × {it.quantity}</span>
-                <span>${(Number(it.unit_price) * it.quantity).toFixed(2)}</span>
+                <span>{ksh(Number(it.unit_price) * it.quantity)}</span>
               </li>
             ))}
           </ul>
