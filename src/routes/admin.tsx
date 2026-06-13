@@ -252,6 +252,153 @@ function ProductForm({ initial, onDone }: { initial: Product | null; onDone: () 
 }
 
 function OrdersAdmin() {
+  return <OrdersAdminInner />;
+}
+
+function BannersAdmin() {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Banner | null>(null);
+
+  const { data } = useQuery({
+    queryKey: ["admin-banners"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("banners").select("*").order("sort_order").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as Banner[];
+    },
+  });
+
+  const remove = async (id: string) => {
+    if (!confirm("Delete this banner?")) return;
+    const { error } = await supabase.from("banners").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else { toast.success("Deleted"); qc.invalidateQueries({ queryKey: ["admin-banners"] }); qc.invalidateQueries({ queryKey: ["banners-active"] }); }
+  };
+
+  const toggleActive = async (b: Banner) => {
+    const { error } = await supabase.from("banners").update({ active: !b.active }).eq("id", b.id);
+    if (error) toast.error(error.message);
+    else { qc.invalidateQueries({ queryKey: ["admin-banners"] }); qc.invalidateQueries({ queryKey: ["banners-active"] }); }
+  };
+
+  return (
+    <div className="mt-4">
+      <div className="mb-4 flex justify-end">
+        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
+          <DialogTrigger asChild>
+            <Button onClick={() => setEditing(null)}><Plus className="h-4 w-4" /> Add Banner</Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg">
+            <DialogHeader><DialogTitle>{editing ? "Edit Banner" : "Add Banner"}</DialogTitle></DialogHeader>
+            <BannerForm
+              initial={editing}
+              onDone={() => {
+                setOpen(false); setEditing(null);
+                qc.invalidateQueries({ queryKey: ["admin-banners"] });
+                qc.invalidateQueries({ queryKey: ["banners-active"] });
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        {data?.map((b) => (
+          <div key={b.id} className="overflow-hidden rounded-lg border bg-card">
+            <img src={b.image_url} alt={b.title} className="h-32 w-full object-cover" />
+            <div className="p-3">
+              <div className="flex items-center justify-between">
+                <p className="font-semibold">{b.title}</p>
+                <Switch checked={b.active} onCheckedChange={() => toggleActive(b)} />
+              </div>
+              {b.subtitle && <p className="text-sm text-muted-foreground">{b.subtitle}</p>}
+              <div className="mt-2 flex justify-end gap-1">
+                <Button variant="ghost" size="icon" onClick={() => { setEditing(b); setOpen(true); }}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => remove(b.id)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        ))}
+        {!data?.length && (
+          <p className="col-span-full rounded-lg border bg-card p-8 text-center text-muted-foreground">No banners yet. Add one to feature special offers on the home page.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function BannerForm({ initial, onDone }: { initial: Banner | null; onDone: () => void }) {
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [subtitle, setSubtitle] = useState(initial?.subtitle ?? "");
+  const [linkUrl, setLinkUrl] = useState(initial?.link_url ?? "");
+  const [imageUrl, setImageUrl] = useState(initial?.image_url ?? "");
+  const [sortOrder, setSortOrder] = useState<string>(initial?.sort_order?.toString() ?? "0");
+  const [active, setActive] = useState<boolean>(initial?.active ?? true);
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      const url = await uploadProductImage(file);
+      setImageUrl(url);
+      toast.success("Image uploaded");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title || !imageUrl) { toast.error("Title and image are required"); return; }
+    setSaving(true);
+    const payload = {
+      title: title.trim(),
+      subtitle: subtitle.trim() || null,
+      link_url: linkUrl.trim() || null,
+      image_url: imageUrl,
+      sort_order: parseInt(sortOrder) || 0,
+      active,
+    };
+    const { error } = initial
+      ? await supabase.from("banners").update(payload).eq("id", initial.id)
+      : await supabase.from("banners").insert(payload);
+    setSaving(false);
+    if (error) toast.error(error.message);
+    else { toast.success(initial ? "Updated" : "Added"); onDone(); }
+  };
+
+  return (
+    <form onSubmit={submit} className="space-y-3">
+      <div><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} required /></div>
+      <div><Label>Subtitle</Label><Input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="20% off this week" /></div>
+      <div><Label>Link URL (optional)</Label><Input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="/products" /></div>
+      <div>
+        <Label>Banner Image</Label>
+        <Input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])} disabled={uploading} />
+        {imageUrl && <img src={imageUrl} alt="" className="mt-2 h-24 w-full rounded object-cover" />}
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div><Label>Sort Order</Label><Input type="number" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} /></div>
+        <div className="flex items-end justify-between rounded-md border px-3 pb-2">
+          <Label className="mb-1">Active</Label>
+          <Switch checked={active} onCheckedChange={setActive} />
+        </div>
+      </div>
+      <Button type="submit" className="w-full" disabled={saving || uploading}>
+        {saving ? "Saving…" : initial ? "Update Banner" : "Add Banner"}
+      </Button>
+    </form>
+  );
+}
+
+function OrdersAdminInner() {
   const qc = useQueryClient();
   const { data } = useQuery({
     queryKey: ["admin-orders"],
