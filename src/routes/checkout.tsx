@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { z } from "zod";
 import { initiateMpesaStkPush, getPaymentStatus } from "@/lib/mpesa.functions";
+import { ksh } from "@/lib/format";
 
 export const Route = createFileRoute("/checkout")({
   component: Checkout,
@@ -130,7 +131,7 @@ function Checkout() {
           <p className="mt-1 text-xs text-muted-foreground">Safaricom M-Pesa number used for payment.</p>
         </div>
         <Button type="submit" size="lg" className="w-full" disabled={busy}>
-          {busy ? "Processing payment…" : `Pay KES ${total.toFixed(0)} with M-Pesa`}
+          {busy ? "Processing payment…" : `Pay ${ksh(total)} with M-Pesa`}
         </Button>
         {stkStatus && (
           <p className="rounded-md bg-[var(--color-brand)]/10 p-3 text-center text-sm text-[var(--color-brand-dark)]">
@@ -143,11 +144,11 @@ function Checkout() {
         {items.map((i) => (
           <div key={i.id} className="flex justify-between text-sm">
             <span>{i.name} × {i.quantity}</span>
-            <span>${(i.price * i.quantity).toFixed(2)}</span>
+            <span>{ksh(i.price * i.quantity)}</span>
           </div>
         ))}
         <div className="flex justify-between border-t pt-2 font-semibold">
-          <span>Total</span><span>${total.toFixed(2)}</span>
+          <span>Total</span><span>{ksh(total)}</span>
         </div>
       </div>
     </div>
