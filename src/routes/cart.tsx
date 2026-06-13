@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Trash2 } from "lucide-react";
+import { ksh } from "@/lib/format";
 
 export const Route = createFileRoute("/cart")({
   component: Cart,
@@ -34,7 +35,7 @@ function Cart() {
             </div>
             <div className="flex-1">
               <h3 className="font-medium">{i.name}</h3>
-              <p className="text-sm text-[var(--color-primary)]">${i.price.toFixed(2)}</p>
+              <p className="text-sm text-[var(--color-primary)]">{ksh(i.price)}</p>
             </div>
             <Input
               type="number"
@@ -50,7 +51,7 @@ function Cart() {
         ))}
       </div>
       <div className="mt-6 flex items-center justify-between rounded-lg border bg-card p-4">
-        <span className="text-lg font-semibold">Total: ${total.toFixed(2)}</span>
+        <span className="text-lg font-semibold">Total: {ksh(total)}</span>
         <Button size="lg" onClick={() => navigate({ to: user ? "/checkout" : "/auth" })}>
           {user ? "Checkout" : "Sign in to Checkout"}
         </Button>
