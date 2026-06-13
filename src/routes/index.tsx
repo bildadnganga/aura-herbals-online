@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Leaf, Shield, Truck } from "lucide-react";
+import heroImg from "@/assets/arthritis-pack.jpeg.asset.json";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -32,10 +33,13 @@ function Index() {
 
   return (
     <div>
-      <section className="bg-gradient-to-br from-[var(--color-brand)] to-[var(--color-brand-dark)] text-[var(--color-brand-foreground)]">
-        <div className="mx-auto max-w-7xl px-4 py-20 text-center">
-          <h1 className="text-4xl font-bold md:text-6xl">Nature's Medicine, Delivered.</h1>
-          <p className="mx-auto mt-4 max-w-2xl text-lg opacity-90">
+      <section
+        className="relative bg-cover bg-center text-white"
+        style={{ backgroundImage: `linear-gradient(rgba(0,40,20,0.65), rgba(0,40,20,0.75)), url(${heroImg.url})` }}
+      >
+        <div className="mx-auto max-w-7xl px-4 py-24 text-center">
+          <h1 className="text-4xl font-bold drop-shadow-lg md:text-6xl">Nature's Medicine, Delivered.</h1>
+          <p className="mx-auto mt-4 max-w-2xl text-lg opacity-95 drop-shadow">
             Premium herbal remedies, organic teas and time-honored tinctures from trusted growers.
           </p>
           <Button asChild size="lg" className="mt-8">
