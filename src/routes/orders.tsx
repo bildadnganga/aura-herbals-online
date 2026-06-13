@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { ksh } from "@/lib/format";
 
 export const Route = createFileRoute("/orders")({
   component: Orders,
@@ -45,14 +46,14 @@ function Orders() {
                 </div>
                 <div className="text-right">
                   <span className="inline-block rounded-full bg-[var(--color-brand)]/10 px-3 py-1 text-xs font-medium text-[var(--color-brand-dark)] capitalize">{o.status}</span>
-                  <p className="mt-1 font-semibold">${Number(o.total).toFixed(2)}</p>
+                  <p className="mt-1 font-semibold">{ksh(o.total)}</p>
                 </div>
               </div>
               <ul className="mt-3 space-y-1 text-sm">
                 {o.order_items?.map((it: any) => (
                   <li key={it.id} className="flex justify-between">
                     <span>{it.product_name} × {it.quantity}</span>
-                    <span>${(Number(it.unit_price) * it.quantity).toFixed(2)}</span>
+                    <span>{ksh(Number(it.unit_price) * it.quantity)}</span>
                   </li>
                 ))}
               </ul>
