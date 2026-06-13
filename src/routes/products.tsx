@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ksh } from "@/lib/format";
 
 export const Route = createFileRoute("/products")({
   head: () => ({
@@ -50,7 +51,7 @@ function Products() {
               <div className="p-3">
                 {p.category && <p className="text-xs uppercase tracking-wide text-muted-foreground">{p.category}</p>}
                 <h3 className="font-medium">{p.name}</h3>
-                <p className="mt-1 text-sm font-semibold text-[var(--color-primary)]">${Number(p.price).toFixed(2)}</p>
+                <p className="mt-1 text-sm font-semibold text-[var(--color-primary)]">{ksh(p.price)}</p>
               </div>
             </Link>
           ))}

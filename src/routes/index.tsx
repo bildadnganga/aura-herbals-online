@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Leaf, Shield, Truck } from "lucide-react";
 import heroImg from "@/assets/arthritis-pack.jpeg.asset.json";
+import { ksh } from "@/lib/format";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -18,16 +19,31 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const { data: featured } = useQuery({
-    queryKey: ["featured-products"],
+  const { data: products } = useQuery({
+    queryKey: ["home-products"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
         .select("*")
+        .order("featured", { ascending: false })
         .order("created_at", { ascending: false })
-        .limit(4);
+        .limit(12);
       if (error) throw error;
-      return data;
+      return data as Array<{ id: string; slug: string; name: string; price: number; image_url: string | null; featured: boolean; category: string | null }>;
+    },
+  });
+
+  const { data: banners } = useQuery({
+    queryKey: ["banners-active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("banners")
+        .select("*")
+        .eq("active", true)
+        .order("sort_order")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as Array<{ id: string; title: string; subtitle: string | null; image_url: string; link_url: string | null }>;
     },
   });
 
@@ -48,6 +64,31 @@ function Index() {
         </div>
       </section>
 
+      {!!banners?.length && (
+        <section className="mx-auto max-w-7xl px-4 pt-10">
+          <h2 className="mb-4 text-2xl font-bold">Special Offers</h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {banners.map((b) => {
+              const card = (
+                <div className="group relative overflow-hidden rounded-xl border bg-card shadow-sm transition hover:shadow-lg">
+                  <img src={b.image_url} alt={b.title} className="h-48 w-full object-cover transition-transform group-hover:scale-105" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                  <div className="absolute bottom-0 p-4 text-white">
+                    <h3 className="text-lg font-bold">{b.title}</h3>
+                    {b.subtitle && <p className="text-sm opacity-90">{b.subtitle}</p>}
+                  </div>
+                </div>
+              );
+              return b.link_url ? (
+                <a key={b.id} href={b.link_url}>{card}</a>
+              ) : (
+                <div key={b.id}>{card}</div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-12 md:grid-cols-3">
         {[
           { icon: Leaf, title: "100% Natural", text: "Sourced from organic farms worldwide." },
@@ -64,32 +105,38 @@ function Index() {
 
       <section className="mx-auto max-w-7xl px-4 pb-16">
         <div className="mb-6 flex items-end justify-between">
-          <h2 className="text-2xl font-bold">New Arrivals</h2>
+          <h2 className="text-2xl font-bold">Our Products</h2>
           <Link to="/products" className="text-sm font-medium text-[var(--color-primary)] hover:underline">
             View all →
           </Link>
         </div>
-        {!featured?.length ? (
+        {!products?.length ? (
           <p className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
             No products yet. Admins can add them from the Admin dashboard.
           </p>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-            {featured.map((p) => (
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {products.map((p) => (
               <Link
                 key={p.id}
                 to="/products/$slug"
                 params={{ slug: p.slug }}
-                className="group overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-lg"
+                className="group relative overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-lg"
               >
+                {p.featured && (
+                  <span className="absolute right-2 top-2 z-10 rounded-full bg-[var(--color-primary)] px-2 py-0.5 text-xs font-bold text-[var(--color-primary-foreground)] shadow">
+                    Featured
+                  </span>
+                )}
                 <div className="aspect-square bg-muted">
                   {p.image_url && (
                     <img src={p.image_url} alt={p.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
                   )}
                 </div>
                 <div className="p-3">
+                  {p.category && <p className="text-xs uppercase tracking-wide text-muted-foreground">{p.category}</p>}
                   <h3 className="font-medium">{p.name}</h3>
-                  <p className="mt-1 text-sm font-semibold text-[var(--color-primary)]">${Number(p.price).toFixed(2)}</p>
+                  <p className="mt-1 text-sm font-semibold text-[var(--color-primary)]">{ksh(p.price)}</p>
                 </div>
               </Link>
             ))}

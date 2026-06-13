@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
+import { ksh } from "@/lib/format";
 
 export const Route = createFileRoute("/products/$slug")({
   component: Product,
@@ -32,7 +33,7 @@ function Product() {
       <div>
         {data.category && <p className="text-sm uppercase tracking-wide text-muted-foreground">{data.category}</p>}
         <h1 className="mt-1 text-3xl font-bold">{data.name}</h1>
-        <p className="mt-2 text-2xl font-semibold text-[var(--color-primary)]">${Number(data.price).toFixed(2)}</p>
+        <p className="mt-2 text-2xl font-semibold text-[var(--color-primary)]">{ksh(data.price)}</p>
         <p className="mt-4 text-sm text-muted-foreground">{data.stock > 0 ? `${data.stock} in stock` : "Out of stock"}</p>
         <p className="mt-6 whitespace-pre-wrap text-base">{data.description}</p>
         <Button
