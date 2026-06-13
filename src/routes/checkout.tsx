@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { z } from "zod";
+import { initiateMpesaStkPush, getPaymentStatus } from "@/lib/mpesa.functions";
 
 export const Route = createFileRoute("/checkout")({
   component: Checkout,
@@ -17,7 +19,7 @@ export const Route = createFileRoute("/checkout")({
 const schema = z.object({
   name: z.string().trim().min(1).max(100),
   address: z.string().trim().min(5).max(500),
-  phone: z.string().trim().min(5).max(30),
+  phone: z.string().trim().regex(/^(\+?254|0)?[71]\d{8}$/, "Enter a valid Kenyan phone (e.g. 0712345678)"),
 });
 
 function Checkout() {
@@ -28,6 +30,14 @@ function Checkout() {
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
+  const [stkStatus, setStkStatus] = useState<string | null>(null);
+  const pollRef = useRef<number | null>(null);
+  const startStk = useServerFn(initiateMpesaStkPush);
+  const checkStatus = useServerFn(getPaymentStatus);
+
+  useEffect(() => () => {
+    if (pollRef.current) window.clearInterval(pollRef.current);
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -68,11 +78,38 @@ function Checkout() {
         quantity: i.quantity,
       })),
     );
-    setBusy(false);
-    if (itemsError) { toast.error(itemsError.message); return; }
-    clear();
-    toast.success("Order placed!");
-    navigate({ to: "/orders" });
+    if (itemsError) { setBusy(false); toast.error(itemsError.message); return; }
+
+    try {
+      const res = await startStk({ data: { orderId: order.id, phone: parsed.data.phone, amount: total } });
+      setStkStatus(res.message);
+      toast.success("STK push sent — check your phone");
+
+      // Poll for payment status
+      let attempts = 0;
+      pollRef.current = window.setInterval(async () => {
+        attempts++;
+        const { payment } = await checkStatus({ data: { orderId: order.id } });
+        if (payment?.status === "success") {
+          window.clearInterval(pollRef.current!);
+          clear();
+          toast.success(`Payment received! Receipt: ${payment.mpesa_receipt}`);
+          navigate({ to: "/orders" });
+        } else if (payment?.status === "failed") {
+          window.clearInterval(pollRef.current!);
+          setBusy(false);
+          setStkStatus(null);
+          toast.error(payment.result_desc ?? "Payment failed");
+        } else if (attempts > 30) {
+          window.clearInterval(pollRef.current!);
+          setBusy(false);
+          setStkStatus("Timed out waiting for payment confirmation. Check your M-Pesa messages.");
+        }
+      }, 3000);
+    } catch (err: any) {
+      setBusy(false);
+      toast.error(err?.message ?? "M-Pesa payment failed to start");
+    }
   };
 
   return (
@@ -89,9 +126,17 @@ function Checkout() {
         </div>
         <div>
           <Label htmlFor="phone">Phone</Label>
-          <Input id="phone" required value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <Input id="phone" required placeholder="0712345678" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <p className="mt-1 text-xs text-muted-foreground">Safaricom M-Pesa number used for payment.</p>
         </div>
-        <Button type="submit" size="lg" className="w-full" disabled={busy}>Place Order</Button>
+        <Button type="submit" size="lg" className="w-full" disabled={busy}>
+          {busy ? "Processing payment…" : `Pay KES ${total.toFixed(0)} with M-Pesa`}
+        </Button>
+        {stkStatus && (
+          <p className="rounded-md bg-[var(--color-brand)]/10 p-3 text-center text-sm text-[var(--color-brand-dark)]">
+            {stkStatus}
+          </p>
+        )}
       </form>
       <div className="h-fit space-y-2 rounded-lg border bg-card p-6">
         <h2 className="text-lg font-semibold">Order Summary</h2>
