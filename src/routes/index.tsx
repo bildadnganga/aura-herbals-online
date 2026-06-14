@@ -2,9 +2,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Leaf, Shield, Truck } from "lucide-react";
+import { Leaf, Shield, Truck, ShoppingCart } from "lucide-react";
 import heroImg from "@/assets/arthritis-pack.jpeg.asset.json";
 import { ksh } from "@/lib/format";
+import { useCart } from "@/lib/cart";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -19,6 +21,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
+  const { add } = useCart();
   const { data: products } = useQuery({
     queryKey: ["home-products"],
     queryFn: async () => {
@@ -117,28 +120,40 @@ function Index() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {products.map((p) => (
-              <Link
+              <div
                 key={p.id}
-                to="/products/$slug"
-                params={{ slug: p.slug }}
-                className="group relative overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-lg"
+                className="group relative flex flex-col overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-lg"
               >
                 {p.featured && (
                   <span className="absolute right-2 top-2 z-10 rounded-full bg-[var(--color-primary)] px-2 py-0.5 text-xs font-bold text-[var(--color-primary-foreground)] shadow">
                     Featured
                   </span>
                 )}
-                <div className="aspect-square bg-muted">
-                  {p.image_url && (
-                    <img src={p.image_url} alt={p.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
-                  )}
+                <Link to="/products/$slug" params={{ slug: p.slug }} className="block">
+                  <div className="aspect-square bg-muted">
+                    {p.image_url && (
+                      <img src={p.image_url} alt={p.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                    )}
+                  </div>
+                  <div className="p-3">
+                    {p.category && <p className="text-xs uppercase tracking-wide text-muted-foreground">{p.category}</p>}
+                    <h3 className="font-medium">{p.name}</h3>
+                    <p className="mt-1 text-sm font-semibold text-[var(--color-primary)]">{ksh(p.price)}</p>
+                  </div>
+                </Link>
+                <div className="mt-auto p-3 pt-0">
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      add({ id: p.id, name: p.name, price: Number(p.price), image_url: p.image_url });
+                      toast.success(`${p.name} added to cart`);
+                    }}
+                  >
+                    <ShoppingCart className="h-4 w-4" /> Add to Cart
+                  </Button>
                 </div>
-                <div className="p-3">
-                  {p.category && <p className="text-xs uppercase tracking-wide text-muted-foreground">{p.category}</p>}
-                  <h3 className="font-medium">{p.name}</h3>
-                  <p className="mt-1 text-sm font-semibold text-[var(--color-primary)]">{ksh(p.price)}</p>
-                </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}
