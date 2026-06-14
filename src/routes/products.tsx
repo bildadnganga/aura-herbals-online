@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
 import { ShoppingCart } from "lucide-react";
+import { flyToCart } from "@/lib/fly-to-cart";
 
 export const Route = createFileRoute("/products")({
   head: () => ({
@@ -62,8 +63,9 @@ function Products() {
                 <Button
                   size="sm"
                   className="w-full"
-                  onClick={() => {
+                  onClick={(e) => {
                     add({ id: p.id, name: p.name, price: Number(p.price), image_url: p.image_url });
+                    flyToCart(e.currentTarget, p.image_url);
                     toast.success(`${p.name} added to cart`);
                   }}
                 >
