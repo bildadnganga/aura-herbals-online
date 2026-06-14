@@ -7,6 +7,7 @@ import heroImg from "@/assets/arthritis-pack.jpeg.asset.json";
 import { ksh } from "@/lib/format";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
+import { flyToCart } from "@/lib/fly-to-cart";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -92,21 +93,7 @@ function Index() {
         </section>
       )}
 
-      <section className="mx-auto grid max-w-7xl gap-6 px-4 py-12 md:grid-cols-3">
-        {[
-          { icon: Leaf, title: "100% Natural", text: "Sourced from organic farms worldwide." },
-          { icon: Shield, title: "Lab Tested", text: "Every batch verified for purity." },
-          { icon: Truck, title: "Fast Shipping", text: "Discreet delivery to your door." },
-        ].map((f) => (
-          <div key={f.title} className="rounded-lg border bg-card p-6 text-center">
-            <f.icon className="mx-auto mb-3 h-10 w-10 text-[var(--color-brand)]" />
-            <h3 className="font-semibold">{f.title}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">{f.text}</p>
-          </div>
-        ))}
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 pb-16">
+      <section className="mx-auto max-w-7xl px-4 pt-12">
         <div className="mb-6 flex items-end justify-between">
           <h2 className="text-2xl font-bold">Our Products</h2>
           <Link to="/products" className="text-sm font-medium text-[var(--color-primary)] hover:underline">
@@ -145,8 +132,9 @@ function Index() {
                   <Button
                     size="sm"
                     className="w-full"
-                    onClick={() => {
+                    onClick={(e) => {
                       add({ id: p.id, name: p.name, price: Number(p.price), image_url: p.image_url });
+                      flyToCart(e.currentTarget, p.image_url);
                       toast.success(`${p.name} added to cart`);
                     }}
                   >
@@ -157,6 +145,20 @@ function Index() {
             ))}
           </div>
         )}
+      </section>
+
+      <section className="mx-auto grid max-w-7xl gap-6 px-4 py-12 md:grid-cols-3">
+        {[
+          { icon: Leaf, title: "100% Natural", text: "Sourced from organic farms worldwide." },
+          { icon: Shield, title: "Lab Tested", text: "Every batch verified for purity." },
+          { icon: Truck, title: "Fast Shipping", text: "Discreet delivery to your door." },
+        ].map((f) => (
+          <div key={f.title} className="rounded-lg border bg-card p-6 text-center">
+            <f.icon className="mx-auto mb-3 h-10 w-10 text-[var(--color-brand)]" />
+            <h3 className="font-semibold">{f.title}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{f.text}</p>
+          </div>
+        ))}
       </section>
     </div>
   );

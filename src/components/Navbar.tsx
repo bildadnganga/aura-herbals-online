@@ -27,7 +27,7 @@ export function Navbar() {
           )}
         </nav>
         <div className="flex items-center gap-2">
-          <Link to="/cart" className="relative inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-white/10">
+          <Link id="navbar-cart" to="/cart" className="relative inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-white/10">
             <ShoppingCart className="h-5 w-5" />
             {count > 0 && (
               <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-primary)] px-1 text-xs font-bold text-[var(--color-primary-foreground)]">
