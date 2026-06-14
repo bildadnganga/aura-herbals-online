@@ -134,7 +134,7 @@ function Index() {
                     className="w-full"
                     onClick={(e) => {
                       add({ id: p.id, name: p.name, price: Number(p.price), image_url: p.image_url });
-                      flyToCart(e.currentTarget.closest("[data-product-card]") as HTMLElement | null, p.image_url);
+                      flyToCart(e.currentTarget, p.image_url);
                       toast.success(`${p.name} added to cart`);
                     }}
                   >
