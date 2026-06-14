@@ -7,6 +7,7 @@ import heroImg from "@/assets/arthritis-pack.jpeg.asset.json";
 import { ksh } from "@/lib/format";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
+import { flyToCart } from "@/lib/fly-to-cart";
 
 export const Route = createFileRoute("/")({
   head: () => ({
