@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { initiateMpesaStkPush, getPaymentStatus } from "@/lib/mpesa.functions";
 import { ksh } from "@/lib/format";
+import { LocationPicker } from "@/components/LocationPicker";
 
 export const Route = createFileRoute("/checkout")({
   component: Checkout,
@@ -31,6 +32,7 @@ function Checkout() {
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
+  const [loc, setLoc] = useState<{ lat: number; lng: number } | null>(null);
   const [stkStatus, setStkStatus] = useState<string | null>(null);
   const pollRef = useRef<number | null>(null);
   const startStk = useServerFn(initiateMpesaStkPush);
@@ -53,6 +55,9 @@ function Checkout() {
     const parsed = schema.safeParse({ name, address, phone });
     if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
     if (!user) return;
+    const fullAddress = loc
+      ? `${parsed.data.address}\nPinned: ${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)} (https://maps.google.com/?q=${loc.lat},${loc.lng})`
+      : parsed.data.address;
     setBusy(true);
     const { data: order, error } = await supabase
       .from("orders")
@@ -60,7 +65,7 @@ function Checkout() {
         user_id: user.id,
         total,
         shipping_name: parsed.data.name,
-        shipping_address: parsed.data.address,
+        shipping_address: fullAddress,
         shipping_phone: parsed.data.phone,
       })
       .select()
@@ -125,6 +130,7 @@ function Checkout() {
           <Label htmlFor="addr">Address</Label>
           <Textarea id="addr" required value={address} onChange={(e) => setAddress(e.target.value)} />
         </div>
+        <LocationPicker onChange={setLoc} />
         <div>
           <Label htmlFor="phone">Phone</Label>
           <Input id="phone" required placeholder="0712345678" value={phone} onChange={(e) => setPhone(e.target.value)} />
