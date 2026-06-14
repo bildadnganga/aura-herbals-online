@@ -41,7 +41,7 @@ function Products() {
           No products available yet.
         </p>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-2">
           {data.map((p) => (
             <div
               key={p.id}
